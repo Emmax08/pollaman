@@ -1,4 +1,4 @@
-import { startSubBot } from '../../commands/socket/subs.js';
+import { startSubBot } from '../../plugins/socket/subs.js';
 import fs from 'fs';
 import path from 'path';
 import { jidDecode } from '@whiskeysockets/baileys';
