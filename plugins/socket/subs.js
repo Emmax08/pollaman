@@ -1,7 +1,7 @@
 import { Browsers, makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion, DisconnectReason, jidDecode } from '@whiskeysockets/baileys';
 import NodeCache from 'node-cache';
 import main from '../../main.js';
-import events from '../../commands/events.js';
+import events from '../../plugins/events.js';
 import qrcode from "qrcode";
 import pino from 'pino';
 import fs from 'fs';
