@@ -1,6 +1,6 @@
 import "./settings.js"
 import main from './main.js'
-import events from './commands/events.js'
+import events from './plugins/events.js'
 import { Browsers, makeWASocket, makeCacheableSignalKeyStore, useMultiFileAuthState, fetchLatestBaileysVersion, jidDecode, DisconnectReason, jidNormalizedUser, } from "@whiskeysockets/baileys";
 import cfonts from 'cfonts';
 import pino from "pino";
