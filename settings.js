@@ -28,7 +28,7 @@ botAdmin: '《✧》 Este comando solo puede ser ejecutado si el Socket es Admin
 
 global.APIs = {
 yuki: { url: "https://api.yuki-wabot.my.id", key: "YukiWaBot" },
-ootaizumi: { url: "https://api.ootaizumi.web.id", key: null }
+ootaizumi: { url: "https://api.ootaizumi.web.id", key: null },
 delirius: { url: "https://api.delirius.store", key: null },
 axi: { url: "https://apiaxi.i11.eu", key: null },
 vreden: { url: "https://api.vreden.web.id", key: null }
