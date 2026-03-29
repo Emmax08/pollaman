@@ -2,7 +2,7 @@ import fs from 'fs';
 import { watchFile, unwatchFile } from 'fs'
 import { fileURLToPath } from 'url'
 
-global.owner = ['573196588149', '18493873691', '12892581751‬', '18294868853', '573135180876', '573114910796',
+global.owner = ['573196588149', '18493873691', '12892581751‬', '18294868853', '573135180876', '573114910796']
 global.botNumber = ''
 
 global.sessionName = 'Sessions/Owner'
