@@ -1,14 +1,14 @@
 import { Browsers, makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion, DisconnectReason, jidDecode } from '@whiskeysockets/baileys';
 import NodeCache from 'node-cache';
-import main from '../../main.ts';
-import events from '../../commands/events.ts';
+import main from '../../main.js';
+import events from '../../commands/events.js';
 import qrcode from "qrcode";
 import pino from 'pino';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import chalk from 'chalk';
-import { smsg } from '../../lib/message.ts';
+import { smsg } from '../../lib/message.js';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
