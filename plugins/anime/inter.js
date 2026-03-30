@@ -69,12 +69,6 @@ const captions = {
   wave: (from, to, genero) => from === to ? `se saludó a sí ${genero === 'Hombre' ? 'mismo' : genero === 'Mujer' ? 'misma' : 'mismx'} en el espejo.` : 'está saludando a',
   walk: (from, to) => (from === to ? 'salió a caminar en soledad.' : 'decidió dar un paseo con'),
   wink: (from, to, genero) => from === to ? `se guiñó a sí ${genero === 'Hombre' ? 'mismo' : genero === 'Mujer' ? 'misma' : 'mismx'} en el espejo.` : 'le guiñó a',
-  psycho: (from, to) => from === to ? 'está actuando como un psicópata.' : 'está teniendo un ataque de locura por',
-  poke: (from, to) => from === to ? 'se picó a sí mismo.' : 'le da un golpecito a',
-  cook: (from, to) => from === to ? 'está concentrado en la cocina.' : 'se divierte cocinando con',
-  lewd: (from, to) => from === to ? 'se comporta de forma provocativa.' : 'se mueve de manera seductora por',
-  greet: (from, to) => from === to ? 'extiende la mano para saludar a todos.' : 'extiende la mano para saludar a',
-  facepalm: (from, to) => from === to ? 'se frustra y se da una palmada en la cara.' : 'se da una palmada en la cara por',
 }
 
 const symbols = ['(⁠◠⁠‿⁠◕⁠)', '˃͈◡˂͈', '૮(˶ᵔᵕᵔ˶)ა', '(づ｡◕‿‿◕｡)づ', '(✿◡‿◡)', '(꒪⌓꒪)', '(✿✪‿✪｡)', '(*≧ω≦)', '(✧ω◕)', '˃ 𖥦 ˂', '(⌒‿⌒)', '(¬‿¬)', '(✧ω✧)', '✿(◕ ‿◕)✿', 'ʕ•́ᴥ•̀ʔっ', '(ㅇㅅㅇ❀)', '(∩︵∩)', '(✪ω✪)', '(✯◕‿◕✯)', '(•̀ᴗ•́)و ̑̑']
@@ -83,12 +77,6 @@ function getRandomSymbol() {
 }
 
 const alias = {
-  psycho: ['psycho', 'locura'],
-  poke: ['poke', 'picar'],
-  cook: ['cook', 'cocinar'],
-  lewd: ['lewd', 'provocativo', 'provocativa'],
-  greet: ['greet', 'saludar', 'hola', 'hi'],
-  facepalm: ['facepalm', 'palmada', 'frustracion'],
   angry: ['angry','enojado','enojada'],
   bleh: ['bleh'],
   bored: ['bored','aburrido','aburrida'],
@@ -159,7 +147,7 @@ const alias = {
 };
 
 export default {
-command: ['angry','enojado','enojada','bleh','bored','aburrido','aburrida','clap','aplaudir','coffee','cafe','dramatic','drama','drunk','cold','impregnate','preg','preñar','embarazar','kisscheek','beso','besar','laugh','love','amor','pout','mueca','punch','golpear','run','correr','sad','triste','scared','asustado','seduce','seducir','shy','timido','timida','sleep','dormir','smoke','fumar','spit','escupir','step','pisar','think','pensar','walk','caminar','hug','abrazar','kill','matar','eat','nom','comer','kiss','muak','wink','guiñar','pat','acariciar','happy','feliz','bully','molestar','bite','morder','blush','sonrojarse','wave','saludar','bath','bañarse','smug','presumir','smile','sonreir','highfive','choca','handhold','tomar','cringe','mueca','bonk','golpe','cry','llorar','lick','lamer','slap','bofetada','dance','bailar','cuddle','acurrucar','sing','cantar','tickle','cosquillas','scream','gritar','push','empujar','nope','no','jump','saltar','heat','calor','gaming','jugar','draw','dibujar','call','llamar','snuggle','acurrucarse','blowkiss','besito','trip','tropezar','stare','mirar','sniff','oler','curious','curioso','curiosa','thinkhard','pensar','comfort','consolar','peek','mirar','psycho','locura','poke','picar','cook','cocinar','lewd','provocativo','provocativa','greet','saludar','hola','hi','facepalm','palmada','frustracion'],
+command: ['angry','enojado','enojada','bleh','bored','aburrido','aburrida','clap','aplaudir','coffee','cafe','dramatic','drama','drunk','cold','impregnate','preg','preñar','embarazar','kisscheek','beso','besar','laugh','love','amor','pout','mueca','punch','golpear','run','correr','sad','triste','scared','asustado','seduce','seducir','shy','timido','timida','sleep','dormir','smoke','fumar','spit','escupir','step','pisar','think','pensar','walk','caminar','hug','abrazar','kill','matar','eat','nom','comer','kiss','muak','wink','guiñar','pat','acariciar','happy','feliz','bully','molestar','bite','morder','blush','sonrojarse','wave','saludar','bath','bañarse','smug','presumir','smile','sonreir','highfive','choca','handhold','tomar','cringe','mueca','bonk','golpe','cry','llorar','lick','lamer','slap','bofetada','dance','bailar','cuddle','acurrucar','sing','cantar','tickle','cosquillas','scream','gritar','push','empujar','nope','no','jump','saltar','heat','calor','gaming','jugar','draw','dibujar','call','llamar','snuggle','acurrucarse','blowkiss','besito','trip','tropezar','stare','mirar','sniff','oler','curious','curioso','curiosa','thinkhard','pensar','comfort','consolar','peek','mirar'],
   category: 'anime',
   run: async (client, m, args, usedPrefix, command) => {
     const currentCommand = Object.keys(alias).find(key => alias[key].includes(command)) || command
