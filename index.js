@@ -1,7 +1,7 @@
-import "./settings.js"
-import main from './main.js'
-import events from './plugins/events.js'
-import { Browsers, makeWASocket, makeCacheableSignalKeyStore, useMultiFileAuthState, fetchLatestBaileysVersion, jidDecode, DisconnectReason, jidNormalizedUser, } from "@whiskeysockets/baileys";
+import "./settings.js";
+import main from './main.js';
+import events from './plugins/events.js';
+import { Browsers, makeWASocket, makeCacheableSignalKeyStore, useMultiFileAuthState, fetchLatestBaileysVersion, jidDecode, DisconnectReason } from "@whiskeysockets/baileys";
 import cfonts from 'cfonts';
 import pino from "pino";
 import qrcode from "qrcode-terminal";
@@ -9,43 +9,37 @@ import chalk from "chalk";
 import fs from "fs";
 import path from "path";
 import readlineSync from "readline-sync";
-import readline from "readline";
 import os from "os";
 import { smsg } from "./lib/message.js";
 import db from "./lib/system/database.js";
 import { startSubBot } from './plugins/socket/subs.js';
-import { exec, execSync } from "child_process";
+import { exec } from "child_process";
 
 const log = {
   info: (msg) => console.log(chalk.bgBlue.white.bold(`INFO`), chalk.white(msg)),
   success: (msg) => console.log(chalk.bgGreen.white.bold(`SUCCESS`), chalk.greenBright(msg)),
   warn: (msg) => console.log(chalk.bgYellowBright.blueBright.bold(`WARNING`), chalk.yellow(msg)),
   warning: (msg) => console.log(chalk.bgYellowBright.red.bold(`WARNING`), chalk.yellow(msg)),
-  error: (msg) => console.log(chalk.bgRed.white.bold(`ERROR`), chalk.redBright(msg)),
+  error: (msg) => console.log(chalk.bgRed.white.bold(`ERROR`), chalk.redBright(msg))
 };
 
-  let phoneNumber = global.botNumber || ""
-  let phoneInput = ""
-  const methodCodeQR = process.argv.includes("--qr")
-  const methodCode = process.argv.includes("--code")
-  const DIGITS = (s = "") => String(s).replace(/\D/g, "");
+const maxCache = 100;
+let phoneNumber = global.botNumber || "";
+let phoneInput = "";
+const methodCodeQR = process.argv.includes("--qr");
+const methodCode = process.argv.includes("code");
+const DIGITS = (s = "") => String(s).replace(/\D/g, "");
 
-  function normalizePhoneForPairing(input) {
-    let s = DIGITS(input);
-    if (!s) return "";
-    if (s.startsWith("0")) s = s.replace(/^0+/, "");
-    if (s.length === 10 && s.startsWith("3")) {
-      s = "57" + s;
-    }
-    if (s.startsWith("52") && !s.startsWith("521") && s.length >= 12) {
-      s = "521" + s.slice(2);
-    }
-    if (s.startsWith("54") && !s.startsWith("549") && s.length >= 11) {
-      s = "549" + s.slice(2);
-    }
-    return s;
-  }
-  
+function normalizePhoneForPairing(input) {
+  let s = DIGITS(input);
+  if (!s) return "";
+  if (s.startsWith("0")) s = s.replace(/^0+/, "");
+  if (s.length === 10 && s.startsWith("3")) s = "57" + s;
+  if (s.startsWith("52") && !s.startsWith("521") && s.length >= 12) s = "521" + s.slice(2);
+  if (s.startsWith("54") && !s.startsWith("549") && s.length >= 11) s = "549" + s.slice(2);
+  return s;
+}
+
 const { say } = cfonts
 console.log(chalk.magentaBright('\n❀ Iniciando...'))
   say('Maria Mikhailovna Kujou', {
@@ -58,50 +52,86 @@ console.log(chalk.magentaBright('\n❀ Iniciando...'))
   gradient: ['blue', 'magenta']
 })
 
-const BOT_TYPES = [
+const botTypes = [
   { name: 'SubBot', folder: './Sessions/Subs', starter: startSubBot }
-]
+];
 
 if (!fs.existsSync('./tmp')) fs.mkdirSync('./tmp', { recursive: true });
-global.conns = global.conns || []
-const reconnecting = new Set()
+global.conns = global.conns || [];
+const reconnecting = new Set();
 
 async function loadBots() {
-  for (const { name, folder, starter } of BOT_TYPES) {
-    if (!fs.existsSync(folder)) continue
-    const botIds = fs.readdirSync(folder)
+  for (const { name, folder, starter } of botTypes) {
+    if (!fs.existsSync(folder)) continue;
+    const botIds = fs.readdirSync(folder);
     for (const userId of botIds) {
-      const sessionPath = path.join(folder, userId)
-      const credsPath = path.join(sessionPath, 'creds.json')
-      if (!fs.existsSync(credsPath)) continue
-      if (global.conns.some((conn) => conn.userId === userId)) continue
-      if (reconnecting.has(userId)) continue
+      const sessionPath = path.join(folder, userId);
+      const credsPath = path.join(sessionPath, 'creds.json');
+      if (!fs.existsSync(credsPath)) continue;
+      if (global.conns.some((conn) => conn.userId === userId)) continue;
+      if (reconnecting.has(userId)) continue;
       try {
-        reconnecting.add(userId)
-        await starter(null, null, 'Auto reconexión', false, userId, sessionPath)
+        reconnecting.add(userId);
+        await starter(null, null, 'Auto reconexión', false, userId, sessionPath);
       } catch (e) {
-        reconnecting.delete(userId)
+        console.log(chalk.gray(`[ loadBots ] Error iniciando ${name} ${userId}: ${e?.message || e}`));
+      } finally {
+        reconnecting.delete(userId);
       }
-      await new Promise((res) => setTimeout(res, 2500))
+      await new Promise((res) => setTimeout(res, 2500));
     }
   }
-  setTimeout(loadBots, 60 * 1000)
+  setTimeout(loadBots, 60 * 1000);
 }
 
-(async () => {
-  await loadBots()
-})()
-
-function cleanTmp() {
+function cleanCache() {
   try {
-    const files = fs.readdirSync('./tmp');
-    for (const file of files) {
-      try { fs.rmSync('./tmp/' + file, { recursive: true, force: true }); } catch {}
+    const tmpFolder = './tmp';
+    if (fs.existsSync(tmpFolder)) {
+      const files = fs.readdirSync(tmpFolder);
+      let cleaned = 0;
+      for (const file of files) {
+        try { fs.unlinkSync(path.join(tmpFolder, file)); cleaned++; } catch {}
+      }
+      if (cleaned > 0) console.log(chalk.gray(`[ 🗑️ ] Cache tmp: ${cleaned} archivos eliminados`));
     }
-    if (files.length > 0) console.log(chalk.gray(`[ ✿  ]  Limpiados ${files.length} archivos temporales de tmp`));
-  } catch {}
+    const sessionsFolder = './Sessions';
+    if (fs.existsSync(sessionsFolder)) {
+      const getFolderSizeMB = (dir) => {
+        let total = 0;
+        for (const file of fs.readdirSync(dir)) {
+          try {
+            const filePath = path.join(dir, file);
+            const stat = fs.statSync(filePath);
+            total += stat.isDirectory() ? getFolderSizeMB(filePath) : stat.size;
+          } catch {}
+        }
+        return total / (1024 * 1024);
+      };
+      const sizeMB = getFolderSizeMB(sessionsFolder);
+      if (sizeMB > maxCache) {
+        console.log(chalk.yellow(`[ ⚠ ] Sessions ${sizeMB.toFixed(1)}MB — limpiando...`));
+        const safeDelete = (dir) => {
+          for (const file of fs.readdirSync(dir)) {
+            const filePath = path.join(dir, file);
+            const stat = fs.statSync(filePath);
+            if (stat.isDirectory()) {
+              safeDelete(filePath);
+            } else if (!file.includes('creds') && !file.startsWith('session-')) {
+              try { fs.unlinkSync(filePath); } catch {}
+            }
+          }
+        };
+        for (const botType of ['Owner', 'Subs']) {
+          const botFolder = path.join(sessionsFolder, botType);
+          if (fs.existsSync(botFolder)) safeDelete(botFolder);
+        }
+      }
+    }
+  } catch (e) {
+    console.error(chalk.red('Error en cleanCache: '), e);
+  }
 }
-setInterval(cleanTmp, 1 * 60 * 60 * 1000);
 
 let opcion;
 if (methodCodeQR) {
@@ -115,24 +145,37 @@ if (methodCodeQR) {
     opcion = readlineSync.question("--> ");
   }
   if (opcion === "2") {
-    console.log(chalk.bold.redBright(`\nPor favor, Ingrese el número de WhatsApp.\n${chalk.bold.yellowBright("Ejemplo: +57301******")}\n${chalk.bold.magentaBright('---> ')} `));
+    console.log(chalk.bold.redBright(`\nPor favor, Ingrese el número de WhatsApp.\n${chalk.bold.yellowBright("Ejemplo: +57301******")}\n${chalk.bold.magentaBright('---> ')}`));
     phoneInput = readlineSync.question("");
     phoneNumber = normalizePhoneForPairing(phoneInput);
   }
 }
 
+const msgQueue = [];
+let processingQueue = false;
+async function drainQueue() {
+  if (processingQueue) return;
+  processingQueue = true;
+  while (msgQueue.length > 0) {
+    const task = msgQueue.shift();
+    try { await task; } catch {}
+  }
+  processingQueue = false;
+}
+
+let reconexion = 0;
+const intentos = 15;
 async function startBot() {
-  const { state, saveCreds } = await useMultiFileAuthState(global.sessionName)
-  const { version, isLatest } = await fetchLatestBaileysVersion()
-  const logger = pino({ level: "silent" })
-  console.info = () => {}
-  console.debug = () => {}
-  const browser = typeof Browsers?.macOS === 'function' ? Browsers.macOS('Chrome') : (Browsers?.macOS ?? ['macOS', 'Chrome', '10.15.7'])
-  const clientt = makeWASocket({
+  const { state, saveCreds } = await useMultiFileAuthState(global.sessionName);
+  const { version } = await fetchLatestBaileysVersion();
+  const logger = pino({ level: "silent" });
+  console.info = () => {};
+  console.debug = () => {};
+  const sock = makeWASocket({
     version,
     logger,
     printQRInTerminal: false,
-    browser,
+    browser: Browsers.macOS('Chrome'),
     auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, logger) },
     markOnlineOnConnect: false,
     generateHighQualityLinkPreview: true,
@@ -140,118 +183,123 @@ async function startBot() {
     getMessage: async () => "",
     keepAliveIntervalMs: 45000,
     maxIdleTimeMs: 60000,
-  })
-  
-  global.client = clientt;
-  client.isInit = false
-  client.ev.on("creds.update", saveCreds)
-  if (opcion === "2" && !fs.existsSync("./Sessions/Owner/creds.json")) {
-  setTimeout(async () => {
-    try {
-       if (!state.creds.registered) {
-        const pairing = await global.client.requestPairingCode(phoneNumber)
-        const codeBot = pairing?.match(/.{1,4}/g)?.join("-") || pairing
-        console.log(chalk.bold.white(chalk.bgMagenta(`Código de emparejamiento:`)), chalk.bold.white(chalk.white(codeBot)))
-      }
-    } catch (err) {
-      console.log(chalk.red("Error al generar código:"), err)
-    }
-  }, 3000)
-}
+  });
+  global.client = sock;
+  sock.isInit = false;
+  sock.ev.on("creds.update", saveCreds);
 
-  client.sendText = (jid, text, quoted = "", options) =>
-  client.sendMessage(jid, { text: text, ...options }, { quoted })
-  client.ev.on("connection.update", async (update) => {
-    const { qr, connection, lastDisconnect, isNewLogin, receivedPendingNotifications, } = update    
+  if (opcion === "2" && !fs.existsSync("./Sessions/Owner/creds.json")) {
+    setTimeout(async () => {
+      try {
+        if (!state.creds.registered) {
+          const pairing = await global.client.requestPairingCode(phoneNumber);
+          const codeBot = pairing?.match(/.{1,4}/g)?.join("-") || pairing;
+          console.log(chalk.bold.white(chalk.bgMagenta(`Código de emparejamiento:`)), chalk.bold.white(chalk.white(codeBot)));
+        }
+      } catch (err) {
+        console.log(chalk.red("Error al generar código:"), err);
+      }
+    }, 3000);
+  }
+
+  sock.sendText = (jid, text, quoted = "", options) => sock.sendMessage(jid, { text, ...options }, { quoted });
+  sock.ev.on("connection.update", async (update) => {
+    const { qr, connection, lastDisconnect, isNewLogin, receivedPendingNotifications } = update;
     if (qr != 0 && qr != undefined || methodCodeQR) {
-    if (opcion == '1' || methodCodeQR) {
-      console.log(chalk.green.bold("[ ✿ ] Escanea este código QR"));
-      qrcode.generate(qr, { small: true });
-    }}
+      if (opcion == '1' || methodCodeQR) {
+        console.log(chalk.green.bold("[ ✿ ] Escanea este código QR"));
+        qrcode.generate(qr, { small: true });
+      }
+    }
 
     if (connection === "close") {
       const reason = lastDisconnect?.error?.output?.statusCode || 0;
-      if (reason === DisconnectReason.connectionLost) {
-        log.warning("Se perdió la conexión al servidor, intento reconectarme..")
-        startBot()
-      } else if (reason === DisconnectReason.connectionClosed) {
-        log.warning("Conexión cerrada, intentando reconectarse...")
-        startBot()
-      } else if (reason === DisconnectReason.restartRequired) {
-        log.warning("Es necesario reiniciar..")
-        startBot();
-      } else if (reason === DisconnectReason.timedOut) {
-        log.warning("Tiempo de conexión agotado, intentando reconectarse...")
-        startBot()
-      } else if (reason === DisconnectReason.badSession) {
-        log.warning("Eliminar sesión y escanear nuevamente...")
-        startBot()
-      } else if (reason === DisconnectReason.connectionReplaced) {
-        log.warning("Primero cierre la sesión actual...")
-      } else if (reason === DisconnectReason.loggedOut) {
-        log.warning("Escanee nuevamente y ejecute...")
-        exec("rm -rf ./Sessions/Owner/*")
-        process.exit(1)
+      if (reason === DisconnectReason.loggedOut) {
+        log.warning("Escanee nuevamente y ejecute...");
+        exec("rm -rf ./Sessions/Owner/*");
+        process.exit(1);
       } else if (reason === DisconnectReason.forbidden) {
-        log.error("Error de conexión, escanee nuevamente y ejecute...")
-        exec("rm -rf ./Sessions/Owner/*")
+        log.error("Error de conexión, escanee nuevamente y ejecute...");
+        exec("rm -rf ./Sessions/Owner/*");
         process.exit(1);
       } else if (reason === DisconnectReason.multideviceMismatch) {
-        log.warning("Inicia nuevamente")
-        exec("rm -rf ./Sessions/Owner/*")
-        process.exit(0)
+        log.warning("Inicia nuevamente");
+        exec("rm -rf ./Sessions/Owner/*");
+        process.exit(0);
+      } else if (reason === DisconnectReason.connectionReplaced) {
+        log.warning("Primero cierre la sesión actual...");
+        return;
       } else {
-        client.end(`Motivo de desconexión desconocido : ${reason}|${connection}`)
+        reconexion++;
+        if (reconexion > intentos) {
+          log.error(`Demasiados reintentos (${intentos}). Reinicia el proceso manualmente.`);
+          process.exit(1);
+        }
+        const delay = Math.min(3000 * reconexion, 30000);
+        if (reason === DisconnectReason.connectionLost) log.warning("Se perdió la conexión al servidor, intento reconectarme..");
+        else if (reason === DisconnectReason.connectionClosed) log.warning("Conexión cerrada, intentando reconectarse...");
+        else if (reason === DisconnectReason.restartRequired) log.warning("Es necesario reiniciar..");
+        else if (reason === DisconnectReason.timedOut) log.warning("Tiempo de conexión agotado, intentando reconectarse...");
+        else if (reason === DisconnectReason.badSession) log.warning("Eliminar sesión y escanear nuevamente...");
+        else log.warning(`Desconexión (${reason}), reconectando...`);
+        setTimeout(startBot, delay);
       }
     }
-    if (connection == "open") {
-         const userName = client.user.name || "Desconocido"
-         console.log(chalk.green.bold(`[ ✿ ]  Conectado a: ${userName}`))
+
+    if (connection === "open") {
+      reconexion = 0;
+      const userName = sock.user.name || "Desconocido";
+      console.log(chalk.green.bold(`[ ✿ ]  Conectado a: ${userName}`));
     }
-    if (isNewLogin) {
-      log.info("Nuevo dispositivo detectado")
-    }
-    if (receivedPendingNotifications == "true") {
-      log.warn("Por favor espere aproximadamente 1 minuto...")
-      client.ev.flush()
+    if (isNewLogin) log.info("Nuevo dispositivo detectado");
+    if (receivedPendingNotifications === true) {
+      log.warn("Por favor espere aproximadamente 1 minuto...");
+      sock.ev.flush();
     }
   });
 
-  let m
-  client.ev.on("messages.upsert", async ({ messages }) => {
+  sock.ev.on('messages.upsert', async (chatUpdate) => {
     try {
-      m = messages[0]
-      if (!m.message) return
-      m.message = Object.keys(m.message)[0] === "ephemeralMessage" ? m.message.ephemeralMessage.message : m.message
-      if (m.key && m.key.remoteJid === "status@broadcast") return
-      if (!client.public && !m.key.fromMe && messages.type === "notify") return
-      if (m.key.id.startsWith("BAE5") && m.key.id.length === 16) return
-      m = await smsg(client, m)
-      main(client, m, messages)
+      const kay = chatUpdate.messages[0];
+      if (!kay?.message) return;
+      if (kay.key?.remoteJid === 'status@broadcast') return;
+      kay.message = Object.keys(kay.message)[0] === 'ephemeralMessage' ? kay.message.ephemeralMessage.message : kay.message;
+      if (kay.key.fromMe && kay.key.id.startsWith('3EB0')) return;
+      const m = await smsg(sock, kay);
+      msgQueue.push(main(sock, m, chatUpdate));
+      drainQueue();
     } catch (err) {
-      console.log(err)
+      console.log(log.error('Error:'), err);
     }
-  })
+  });
   try {
-  await events(client, m)
+    await events(sock, null);
   } catch (err) {
-   console.log(chalk.gray(`[ BOT  ]  → ${err}`))
+    console.log(chalk.gray(`[ BOT  ]  → ${err}`));
   }
-  
-  client.decodeJid = (jid) => {
-    if (!jid) return jid
+
+  sock.decodeJid = (jid) => {
+    if (!jid) return jid;
     if (/:\d+@/gi.test(jid)) {
-      let decode = jidDecode(jid) || {}
-      return ((decode.user && decode.server && decode.user + "@" + decode.server) || jid)
-    } else return jid
-  }
+      const decode = jidDecode(jid) || {};
+      return (decode.user && decode.server && decode.user + "@" + decode.server) || jid;
+    }
+    return jid;
+  };
 }
 
+setInterval(cleanCache, 3 * 60 * 60 * 1000);
+cleanCache();
+
 (async () => {
-    global.loadDatabase()
-    console.log(chalk.gray('[ ✿  ]  Base de datos cargada correctamente.'))
-  await startBot()
-})()
+await loadBots(); 
+})();
+
+(async () => {
+global.loadDatabase()
+console.log(chalk.gray('[ ✿  ]  Base de datos cargada correctamente.'))
+await startBot();
+})();
 
 /*process.on('uncaughtException', (err) => {
   const msg = err?.message || '';
