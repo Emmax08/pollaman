@@ -151,18 +151,6 @@ if (methodCodeQR) {
   }
 }
 
-const msgQueue = [];
-let processingQueue = false;
-async function drainQueue() {
-  if (processingQueue) return;
-  processingQueue = true;
-  while (msgQueue.length > 0) {
-    const task = msgQueue.shift();
-    try { await task; } catch {}
-  }
-  processingQueue = false;
-}
-
 let reconexion = 0;
 const intentos = 15;
 async function startBot() {
@@ -266,8 +254,7 @@ async function startBot() {
       kay.message = Object.keys(kay.message)[0] === 'ephemeralMessage' ? kay.message.ephemeralMessage.message : kay.message;
       if (kay.key.fromMe && kay.key.id.startsWith('3EB0')) return;
       const m = await smsg(sock, kay);
-      msgQueue.push(main(sock, m, chatUpdate));
-      drainQueue();
+      main(sock, m, chatUpdate);
     } catch (err) {
       console.log(log.error('Error:'), err);
     }
